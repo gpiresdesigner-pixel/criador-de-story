@@ -933,16 +933,40 @@ function applySelColor(color) {
   if (savedSelRange) {
     const sel = window.getSelection();
     sel.removeAllRanges();
-    sel.addRange(savedSelRange);
+    sel.addRange(savedSelRange.cloneRange());
   }
   currentEditInner.focus();
-  // styleWithCSS makes Chrome produce <span style="color:..."> instead of <font color="...">
-  document.execCommand('styleWithCSS', false, true);
-  document.execCommand('foreColor', false, color);
-  document.execCommand('styleWithCSS', false, false);
-  // Save range after applying
+
   const sel = window.getSelection();
-  if (sel && sel.rangeCount > 0) savedSelRange = sel.getRangeAt(0).cloneRange();
+  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+
+  const range = sel.getRangeAt(0);
+
+  // Use Range API directly — never execCommand, which can inject font-family/size/weight
+  const fragment = range.extractContents();
+
+  // Unwrap any existing color spans inside the extracted fragment so we don't nest them
+  fragment.querySelectorAll('span[style]').forEach(s => {
+    const parent = s.parentNode;
+    while (s.firstChild) parent.insertBefore(s.firstChild, s);
+    parent.removeChild(s);
+  });
+
+  const span = document.createElement('span');
+  span.style.color = color;
+  span.appendChild(fragment);
+  range.insertNode(span);
+
+  // Merge adjacent identical-color spans to keep markup clean
+  currentEditInner.normalize();
+
+  // Leave cursor at end of the colored span
+  const newRange = document.createRange();
+  newRange.setStartAfter(span);
+  newRange.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(newRange);
+  savedSelRange = newRange.cloneRange();
 }
 
 function initSelToolbar() {
