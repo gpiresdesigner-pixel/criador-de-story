@@ -972,15 +972,67 @@ async function exportStory() {
   document.querySelectorAll('.canvas-el').forEach(d => d.classList.remove('selected'));
   hideSelToolbar();
 
-  const frame = document.getElementById('storyFrame');
-  const canvas = await html2canvas(frame, {
-    scale: 3, useCORS: true, allowTaint: true,
-    backgroundColor: null, logging: false, width: 360, height: 640,
-  });
+  await document.fonts.ready;
 
+  const SCALE = 3;
+  const W = 360, H = 640;
+  const CW = W * SCALE, CH = H * SCALE;
+  const cx = W / 2, cy = H / 2;
+
+  const mainCanvas = document.createElement('canvas');
+  mainCanvas.width = CW;
+  mainCanvas.height = CH;
+  const ctx = mainCanvas.getContext('2d');
+
+  // 1. Frame background color
+  const frame = document.getElementById('storyFrame');
+  ctx.fillStyle = frame.style.background || '#111111';
+  ctx.fillRect(0, 0, CW, CH);
+
+  // 2. Background image — draw manually to replicate CSS transform (object-fit:cover + zoom/pan)
+  const bgImg = document.getElementById('storyBg');
+  if (bgImg && bgImg.style.display !== 'none' && bgImg.src && bgImg.naturalWidth > 0) {
+    const iw = bgImg.naturalWidth, ih = bgImg.naturalHeight;
+    const frameAR = W / H, imgAR = iw / ih;
+    let coverW, coverH;
+    if (imgAR > frameAR) { coverH = H; coverW = H * imgAR; }
+    else                  { coverW = W; coverH = W / imgAR; }
+    const baseX = (W - coverW) / 2;
+    const baseY = (H - coverH) / 2;
+    // Replicate: transform-origin center; translate(bgX,bgY) scale(bgScale)
+    ctx.save();
+    ctx.translate(cx * SCALE, cy * SCALE);
+    ctx.translate(bgX * SCALE, bgY * SCALE);
+    ctx.scale(bgScale, bgScale);
+    ctx.translate(-cx * SCALE, -cy * SCALE);
+    ctx.drawImage(bgImg, baseX * SCALE, baseY * SCALE, coverW * SCALE, coverH * SCALE);
+    ctx.restore();
+  }
+
+  // 3. Overlay color
+  const overlayDiv = document.getElementById('overlayDiv');
+  if (overlayDiv && overlayDiv.style.background && overlayDiv.style.background !== 'rgba(0, 0, 0, 0)') {
+    ctx.fillStyle = overlayDiv.style.background;
+    ctx.fillRect(0, 0, CW, CH);
+  }
+
+  // 4. Capture text elements only (skip bg image and overlay so html2canvas doesn't distort them)
+  const savedBg = frame.style.background;
+  frame.style.background = 'transparent';
+  const textCanvas = await html2canvas(frame, {
+    scale: SCALE, useCORS: true, allowTaint: true,
+    backgroundColor: null, logging: false, width: W, height: H,
+    ignoreElements: el => el.id === 'storyBg' || el.id === 'overlayDiv',
+  });
+  frame.style.background = savedBg;
+
+  // 5. Composite text layer on top
+  ctx.drawImage(textCanvas, 0, 0);
+
+  // 6. Download
   const a = document.createElement('a');
   a.download = 'story.png';
-  a.href = canvas.toDataURL('image/png');
+  a.href = mainCanvas.toDataURL('image/png');
   a.click();
 
   if (prev) selectElement(prev);
