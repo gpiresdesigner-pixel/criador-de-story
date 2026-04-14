@@ -97,6 +97,7 @@ html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--tex
 .canvas-el.selected { box-shadow:0 0 0 2px rgba(255,255,255,0.9),0 0 0 4px rgba(0,0,0,0.5); border-radius:inherit; z-index:999 !important; }
 .canvas-el-inner { width:100%; height:100%; display:flex; align-items:center; overflow:hidden; border-radius:inherit; }
 .canvas-el-text { width:100%; display:block; white-space:pre-wrap; word-break:break-word; overflow-wrap:break-word; line-height:1.25; }
+.canvas-el-text span, .canvas-el-text font { font-family:inherit !important; font-size:inherit !important; font-weight:inherit !important; font-style:inherit !important; text-transform:inherit !important; line-height:inherit !important; letter-spacing:inherit !important; }
 .resize-handle { position:absolute; bottom:-5px; right:-5px; width:14px; height:14px; background:#fff; border-radius:3px; cursor:se-resize; border:2px solid #111; display:none; }
 .canvas-el.selected .resize-handle { display:block; }
 
@@ -935,7 +936,10 @@ function applySelColor(color) {
     sel.addRange(savedSelRange);
   }
   currentEditInner.focus();
+  // styleWithCSS makes Chrome produce <span style="color:..."> instead of <font color="...">
+  document.execCommand('styleWithCSS', false, true);
   document.execCommand('foreColor', false, color);
+  document.execCommand('styleWithCSS', false, false);
   // Save range after applying
   const sel = window.getSelection();
   if (sel && sel.rangeCount > 0) savedSelRange = sel.getRangeAt(0).cloneRange();
