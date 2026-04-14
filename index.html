@@ -183,9 +183,62 @@ html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--tex
 
 #storyBg {
   position:absolute; inset:0; width:100%; height:100%;
-  object-fit:cover; object-position:center top;
+  object-fit:cover; object-position:center center;
   pointer-events:none;
+  transform-origin: center center;
+  will-change: transform;
 }
+#storyFrame.bg-adjust-active {
+  outline: 2px solid rgba(100,170,255,0.75);
+  outline-offset: -2px;
+}
+
+/* ── SELECTION COLOR TOOLBAR ── */
+#selColorToolbar {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  background: #1c1c1c;
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  padding: 7px 10px;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 6px 28px rgba(0,0,0,0.85);
+  pointer-events: all;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+#selColorToolbar::after {
+  content: '';
+  position: absolute;
+  bottom: -5px; left: 50%;
+  margin-left: -5px;
+  width: 10px; height: 10px;
+  background: #1c1c1c;
+  border-right: 1px solid #3a3a3a;
+  border-bottom: 1px solid #3a3a3a;
+  transform: rotate(45deg);
+}
+.sel-swatch {
+  width: 18px; height: 18px; border-radius: 50%;
+  cursor: pointer; border: 2px solid transparent;
+  transition: transform .12s, border-color .12s;
+  flex-shrink: 0;
+}
+.sel-swatch:hover { transform: scale(1.25); border-color: rgba(255,255,255,0.7); }
+.sel-custom-wrap {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: conic-gradient(red 0deg,yellow 60deg,lime 120deg,cyan 180deg,blue 240deg,magenta 300deg,red 360deg);
+  border: 2px solid #555; cursor: pointer;
+  position: relative; overflow: hidden; flex-shrink: 0;
+  transition: border-color .12s;
+}
+.sel-custom-wrap:hover { border-color: rgba(255,255,255,0.7); }
+.sel-custom-wrap input[type="color"] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.sel-vdiv { width: 1px; height: 16px; background: #3a3a3a; flex-shrink: 0; }
 
 /* ELEMENTS on canvas */
 .canvas-el {
@@ -399,6 +452,8 @@ let selectedId = null;
 let elCounter = 0;
 let overlayColor = '#000000';
 let overlayOpacity = 0;
+let savedSelRange = null;
+let currentEditInner = null;
 
 const FONTS = [
   { label: 'Modern',         value: 'Raleway',            weight: '300', style: 'normal', transform: 'none',      effect: ''    },
@@ -443,6 +498,7 @@ function makeElement(type) {
       padX: 12, padY: 8,
       visible: true,
       zIndex: elCounter + 10,
+      html: null,
     },
     box: {
       id, type:'box',
@@ -454,6 +510,7 @@ function makeElement(type) {
       fontWeight: '400',
       fontStyle: 'normal',
       fontEffect: '',
+      html: null,
       textTransform: 'none',
       textAlign: 'center',
       color: '#ffffff',
@@ -542,7 +599,11 @@ function renderElement(el) {
     overflow: hidden;
     ${neonShadow}
   `;
-  inner.textContent = el.text;
+  if (el.html != null) {
+    inner.innerHTML = el.html;
+  } else {
+    inner.textContent = el.text;
+  }
 }
 
 function applySelected() {
@@ -603,25 +664,46 @@ function attachResize(handle, el) {
 // ── INLINE EDIT ──
 function startInlineEdit(el) {
   const inner = document.getElementById(el.id + '_inner');
+  currentEditInner = inner;
   inner.contentEditable = 'true';
   inner.focus();
-  // select all
-  const range = document.createRange();
-  range.selectNodeContents(inner);
+
+  // Select all on entry
+  const r = document.createRange();
+  r.selectNodeContents(inner);
   window.getSelection().removeAllRanges();
-  window.getSelection().addRange(range);
+  window.getSelection().addRange(r);
 
   function finish() {
     inner.contentEditable = 'false';
+    el.html = inner.innerHTML;
     el.text = inner.textContent;
-    inner.removeEventListener('blur', finish);
+    currentEditInner = null;
+    savedSelRange = null;
+    hideSelToolbar();
+    inner.removeEventListener('focusout', onFocusOut);
     inner.removeEventListener('keydown', onKey);
-    renderElement(el);
     renderElList();
     renderPropsPanel();
   }
-  function onKey(e) { if (e.key === 'Escape') finish(); }
-  inner.addEventListener('blur', finish);
+
+  function onFocusOut(e) {
+    // Don't finish if focus moves to the selection toolbar
+    const tb = document.getElementById('selColorToolbar');
+    if (e.relatedTarget && tb.contains(e.relatedTarget)) return;
+    finish();
+  }
+
+  function onKey(e) {
+    if (e.key === 'Escape') { inner.blur(); }
+    // Force <br> on Enter instead of <div>
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      document.execCommand('insertHTML', false, '<br>&#8203;');
+    }
+  }
+
+  inner.addEventListener('focusout', onFocusOut);
   inner.addEventListener('keydown', onKey);
 }
 
@@ -836,7 +918,7 @@ function bindPropListeners(el) {
     dom.addEventListener('change', fn);
   }
 
-  on('p_text', e => { el.text = e.target.value; renderElement(el); renderElList(); });
+  on('p_text', e => { el.text = e.target.value; el.html = null; renderElement(el); renderElList(); });
   on('p_font', e => {
     const def = FONTS.find(f => f.value === e.target.value);
     el.fontFamily = e.target.value;
@@ -1047,6 +1129,70 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+// ── SELECTION COLOR TOOLBAR ──
+function hideSelToolbar() {
+  document.getElementById('selColorToolbar').style.display = 'none';
+}
+
+function positionSelToolbar() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !currentEditInner) { hideSelToolbar(); return; }
+  // Check selection is inside the editing element
+  if (!currentEditInner.contains(sel.anchorNode)) { hideSelToolbar(); return; }
+
+  const tb = document.getElementById('selColorToolbar');
+  tb.style.display = 'flex';
+  // Force layout to get width
+  const rect = sel.getRangeAt(0).getBoundingClientRect();
+  const tbW = tb.offsetWidth;
+  const margin = 10;
+  let left = rect.left + rect.width / 2;
+  // Clamp to viewport
+  left = Math.max(tbW / 2 + margin, Math.min(window.innerWidth - tbW / 2 - margin, left));
+  let top = rect.top - tb.offsetHeight - 10;
+  if (top < margin) top = rect.bottom + 10; // flip below if no room
+  tb.style.left = left + 'px';
+  tb.style.top = top + 'px';
+}
+
+function applySelColor(color) {
+  if (!currentEditInner) return;
+  // Restore saved range if needed (for custom color picker)
+  if (savedSelRange) {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(savedSelRange);
+  }
+  currentEditInner.focus();
+  document.execCommand('foreColor', false, color);
+  // Save updated range
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount > 0) savedSelRange = sel.getRangeAt(0).cloneRange();
+}
+
+function initSelToolbar() {
+  // Swatches — mousedown preventDefault keeps focus in contentEditable
+  document.querySelectorAll('.sel-swatch').forEach(swatch => {
+    swatch.addEventListener('mousedown', e => e.preventDefault());
+    swatch.addEventListener('click', () => applySelColor(swatch.dataset.color));
+  });
+
+  // Custom color — save range on mousedown (before focus stolen by native picker)
+  const customInput = document.getElementById('selCustomColor');
+  customInput.addEventListener('mousedown', () => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) savedSelRange = sel.getRangeAt(0).cloneRange();
+  });
+  customInput.addEventListener('input', e => applySelColor(e.target.value));
+
+  // Track text selection changes to show/hide toolbar
+  document.addEventListener('selectionchange', () => {
+    if (!currentEditInner) return;
+    // Small delay so selection is stable
+    requestAnimationFrame(positionSelToolbar);
+  });
+}
+
 // ── KEYBOARD ──
 window.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
@@ -1113,7 +1259,28 @@ window.addEventListener('keydown', e => {
 
   renderLayerList();
   renderElList();
+  initSelToolbar();
 })();
 </script>
+
+<!-- ── SELECTION COLOR TOOLBAR ── -->
+<div id="selColorToolbar">
+  <span style="font-size:9px;color:rgba(255,255,255,0.35);letter-spacing:0.8px;text-transform:uppercase;font-weight:700">COR</span>
+  <div class="sel-vdiv"></div>
+  <div class="sel-swatch" data-color="#ffffff" style="background:#ffffff"></div>
+  <div class="sel-swatch" data-color="#111111" style="background:#111111;border-color:#555"></div>
+  <div class="sel-swatch" data-color="#ff3b30" style="background:#ff3b30"></div>
+  <div class="sel-swatch" data-color="#ff9500" style="background:#ff9500"></div>
+  <div class="sel-swatch" data-color="#ffcc00" style="background:#ffcc00"></div>
+  <div class="sel-swatch" data-color="#34c759" style="background:#34c759"></div>
+  <div class="sel-swatch" data-color="#007aff" style="background:#007aff"></div>
+  <div class="sel-swatch" data-color="#af52de" style="background:#af52de"></div>
+  <div class="sel-swatch" data-color="#ff2d55" style="background:#ff2d55"></div>
+  <div class="sel-swatch" data-color="#5ac8fa" style="background:#5ac8fa"></div>
+  <div class="sel-vdiv"></div>
+  <div class="sel-custom-wrap" title="Cor personalizada">
+    <input type="color" id="selCustomColor" value="#ffffff">
+  </div>
+</div>
 </body>
 </html>
