@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Story Editor</title>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=EB+Garamond:ital,wght@0,400;0,700;1,400;1,700&family=Montserrat:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Bebas+Neue&family=Raleway:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;600;700&family=Oswald:wght@400;700&family=Bebas+Neue&family=Special+Elite&family=Playfair+Display:ital,wght@0,700;1,700&family=Bangers&family=Cormorant+Garamond:ital,wght@0,400;1,400;1,700&family=DM+Sans:wght@300;400;500&family=Poppins:wght@300;400;500;600;700&family=Anton&family=Fredoka:wght@400;600;700&family=Cinzel:wght@400;700&family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
@@ -401,15 +401,19 @@ let overlayColor = '#000000';
 let overlayOpacity = 0;
 
 const FONTS = [
-  { label: 'Oswald', value: 'Oswald' },
-  { label: 'Inter', value: 'Inter' },
-  { label: 'EB Garamond', value: 'EB Garamond' },
-  { label: 'EB Garamond Italic', value: 'EB Garamond', italic: true },
-  { label: 'Montserrat', value: 'Montserrat' },
-  { label: 'Playfair Display', value: 'Playfair Display' },
-  { label: 'Bebas Neue', value: 'Bebas Neue' },
-  { label: 'Raleway', value: 'Raleway' },
-  { label: 'Poppins', value: 'Poppins' },
+  { label: 'Modern',         value: 'Raleway',            weight: '300', style: 'normal', transform: 'none',      effect: ''    },
+  { label: 'Classic',        value: 'Oswald',             weight: '700', style: 'normal', transform: 'uppercase', effect: ''    },
+  { label: 'Neon',           value: 'Bebas Neue',         weight: '400', style: 'normal', transform: 'uppercase', effect: 'neon'},
+  { label: 'Typewriter',     value: 'Special Elite',      weight: '400', style: 'normal', transform: 'none',      effect: ''    },
+  { label: 'Strong',         value: 'Playfair Display',   weight: '700', style: 'italic', transform: 'none',      effect: ''    },
+  { label: 'Comic Sans',     value: 'Bangers',            weight: '400', style: 'normal', transform: 'none',      effect: ''    },
+  { label: 'Italic Serif',   value: 'Cormorant Garamond', weight: '400', style: 'italic', transform: 'none',      effect: ''    },
+  { label: 'Simple',         value: 'DM Sans',            weight: '400', style: 'normal', transform: 'none',      effect: ''    },
+  { label: 'Instagram Sans', value: 'Poppins',            weight: '400', style: 'normal', transform: 'none',      effect: ''    },
+  { label: 'Poster',         value: 'Anton',              weight: '400', style: 'normal', transform: 'uppercase', effect: ''    },
+  { label: 'Bubble',         value: 'Fredoka',            weight: '700', style: 'normal', transform: 'none',      effect: ''    },
+  { label: 'Deco',           value: 'Cinzel',             weight: '400', style: 'normal', transform: 'none',      effect: ''    },
+  { label: 'Signature',      value: 'Dancing Script',     weight: '400', style: 'normal', transform: 'none',      effect: ''    },
 ];
 
 // ── ELEMENT DEFAULTS ──
@@ -426,9 +430,10 @@ function makeElement(type) {
       x: 20, y: Math.round(fr.height * 0.4),
       w: 320, h: 60,
       fontSize: 18,
-      fontFamily: 'Inter',
+      fontFamily: 'Poppins',
       fontWeight: '600',
       fontStyle: 'normal',
+      fontEffect: '',
       textTransform: 'none',
       textAlign: 'center',
       color: '#ffffff',
@@ -445,9 +450,10 @@ function makeElement(type) {
       x: 20, y: Math.round(fr.height * 0.5),
       w: 320, h: 70,
       fontSize: 14,
-      fontFamily: 'Inter',
+      fontFamily: 'Poppins',
       fontWeight: '400',
       fontStyle: 'normal',
+      fontEffect: '',
       textTransform: 'none',
       textAlign: 'center',
       color: '#ffffff',
@@ -513,6 +519,10 @@ function renderElement(el) {
     ? hexToRgba(el.bgColor, el.bgOpacity / 100)
     : 'transparent';
 
+  const neonShadow = el.fontEffect === 'neon'
+    ? `text-shadow: 0 0 6px ${el.color}, 0 0 14px ${el.color}, 0 0 30px ${el.color}, 0 0 60px ${el.color};`
+    : 'text-shadow: none;';
+
   inner.style.cssText = `
     background: ${bgRgba};
     color: ${el.color};
@@ -530,6 +540,7 @@ function renderElement(el) {
     width: 100%; height: 100%;
     display: flex; align-items: center; justify-content: ${el.textAlign === 'left' ? 'flex-start' : el.textAlign === 'right' ? 'flex-end' : 'center'};
     overflow: hidden;
+    ${neonShadow}
   `;
   inner.textContent = el.text;
 }
@@ -826,7 +837,24 @@ function bindPropListeners(el) {
   }
 
   on('p_text', e => { el.text = e.target.value; renderElement(el); renderElList(); });
-  on('p_font', e => { el.fontFamily = e.target.value; renderElement(el); });
+  on('p_font', e => {
+    const def = FONTS.find(f => f.value === e.target.value);
+    el.fontFamily = e.target.value;
+    if (def) {
+      el.fontWeight    = def.weight;
+      el.fontStyle     = def.style;
+      el.textTransform = def.transform;
+      el.fontEffect    = def.effect;
+      // sync weight/style/transform selects
+      const pw = document.getElementById('p_weight');
+      const ps = document.getElementById('p_style');
+      const pt = document.getElementById('p_transform');
+      if (pw) pw.value = def.weight;
+      if (ps) ps.value = def.style;
+      if (pt) pt.value = def.transform;
+    }
+    renderElement(el);
+  });
   on('p_size', e => { el.fontSize = +e.target.value; renderElement(el); });
   on('p_weight', e => { el.fontWeight = e.target.value; renderElement(el); });
   on('p_style', e => { el.fontStyle = e.target.value; renderElement(el); });
@@ -1056,7 +1084,7 @@ window.addEventListener('keydown', e => {
   title.text = 'TÍTULO DO CRIATIVO';
   title.x = 18; title.y = 220; title.w = 324; title.h = 74;
   title.fontFamily = 'Oswald'; title.fontWeight = '700';
-  title.fontSize = 24; title.textTransform = 'uppercase';
+  title.fontEffect = ''; title.fontSize = 24; title.textTransform = 'uppercase';
   title.bgColor = '#9599d2'; title.bgOpacity = 68;
   title.radius = 6; title.color = '#ffffff';
   elements.push(title);
@@ -1066,7 +1094,7 @@ window.addEventListener('keydown', e => {
   const copy = makeElement('box');
   copy.text = 'Seu texto de copy aqui.\nBenefício + Garantia.';
   copy.x = 18; copy.y = 316; copy.w = 324; copy.h = 90;
-  copy.fontFamily = 'Inter'; copy.fontWeight = '400';
+  copy.fontFamily = 'Poppins'; copy.fontWeight = '400'; copy.fontEffect = '';
   copy.fontSize = 14; copy.bgColor = '#2e2e80'; copy.bgOpacity = 100;
   copy.radius = 6; copy.color = 'rgba(255,255,255,0.93)';
   elements.push(copy);
@@ -1076,8 +1104,8 @@ window.addEventListener('keydown', e => {
   const cta = makeElement('text');
   cta.text = 'Toque em SAIBA MAIS';
   cta.x = 26; cta.y = 428; cta.w = 308; cta.h = 48;
-  cta.fontFamily = 'EB Garamond'; cta.fontWeight = '700';
-  cta.fontStyle = 'italic'; cta.fontSize = 20;
+  cta.fontFamily = 'Cormorant Garamond'; cta.fontWeight = '700';
+  cta.fontStyle = 'italic'; cta.fontEffect = ''; cta.fontSize = 20;
   cta.bgColor = '#ffffff'; cta.bgOpacity = 100;
   cta.radius = 6; cta.color = '#111111';
   elements.push(cta);
