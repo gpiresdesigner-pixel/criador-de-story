@@ -395,8 +395,8 @@ html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--tex
 
 // ── STICKER DEFAULTS ──
 const STICKER_DEFAULTS = {
-  pergunta: { label:'Caixinha de Perguntas', w:280, h:100,
-    data:{ titulo:'Faça-me uma pergunta 🙋', placeholder:'Escreva aqui...' } },
+  pergunta: { label:'Caixinha de Perguntas', w:300, h:140,
+    data:{ titulo:'Faça uma pergunta', pergunta:'Eu tenho formação, pós e experiência, mas morro de medo de cobrar mais caro. Isso é normal?' } },
   enquete:  { label:'Enquete', w:280, h:120,
     data:{ pergunta:'Você prefere...', opcao1:'SIM 👍', opcao2:'NÃO 👎' } },
   quiz:     { label:'Quiz', w:280, h:170,
@@ -451,10 +451,9 @@ function stickerTemplate(el) {
   const t = el.stickerType;
 
   if (t === 'pergunta') return `
-    <div class="sk-card" style="border-radius:16px;">
-      <div style="font-size:9px;font-weight:700;color:#8e8e8e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;">${d.titulo}</div>
-      <div style="font-size:13px;color:#c0c0c0;border-bottom:1.5px solid #e8e8e8;padding-bottom:7px;min-height:20px;"></div>
-      <div style="display:flex;justify-content:flex-end;margin-top:5px;"><span style="font-size:16px;">❓</span></div>
+    <div style="width:100%;height:100%;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;font-family:'Poppins','Inter',sans-serif;">
+      <div style="background:#000;color:#fff;font-weight:600;font-size:15px;text-align:center;padding:13px 12px;flex-shrink:0;">${d.titulo}</div>
+      <div style="background:#f3f3f3;color:#000;font-weight:500;font-size:16px;line-height:1.3;text-align:center;padding:16px 14px;flex:1;display:flex;align-items:center;justify-content:center;">${d.pergunta}</div>
     </div>`;
 
   if (t === 'enquete') return `
@@ -793,7 +792,7 @@ function renderStickerProps(el) {
     </div>`;
 
   let fields = '';
-  if (t==='pergunta') fields = field('titulo','Título/instrução',d.titulo,'Faça-me uma pergunta 🙋');
+  if (t==='pergunta') fields = field('titulo','Título (topo preto)',d.titulo,'Faça uma pergunta') + field('pergunta','Pergunta recebida',d.pergunta);
   if (t==='enquete') fields = field('pergunta','Pergunta',d.pergunta) + field('opcao1','Opção 1',d.opcao1,'SIM 👍') + field('opcao2','Opção 2',d.opcao2,'NÃO 👎');
   if (t==='quiz') fields = field('pergunta','Pergunta',d.pergunta) + field('opA','Opção A',d.opA) + field('opB','Opção B',d.opB) + field('opC','Opção C',d.opC) + field('opD','Opção D',d.opD);
   if (t==='reacao') fields = field('pergunta','Pergunta',d.pergunta) + field('emoji','Emoji',d.emoji,'😍');
