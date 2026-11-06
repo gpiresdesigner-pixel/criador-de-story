@@ -164,6 +164,31 @@ html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--tex
 .sel-custom-wrap:hover { border-color: rgba(255,255,255,0.7); }
 .sel-custom-wrap input[type="color"] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
 .sel-vdiv { width:1px; height:16px; background:#444; flex-shrink:0; }
+
+/* ── STICKER STYLES ── */
+.sticker-section-label {
+  font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
+  color:var(--text3); margin-bottom:6px; display:flex; align-items:center; gap:5px;
+}
+.sticker-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+.btn-sticker {
+  background:var(--surface2); border:1px solid var(--border2); border-radius:7px;
+  padding:8px 6px; cursor:pointer; color:var(--text2); font-family:'Inter',sans-serif;
+  font-size:10px; font-weight:600; transition:all .15s; display:flex; flex-direction:column;
+  align-items:center; gap:4px; text-align:center; line-height:1.2;
+}
+.btn-sticker:hover { border-color:#555; color:var(--text); background:#282828; }
+.btn-sticker .s-ico { font-size:18px; line-height:1; }
+
+/* Sticker wrappers on canvas */
+.sk-wrap {
+  width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+  overflow:hidden; border-radius:inherit;
+}
+.sk-card {
+  background:#fff; border-radius:16px; padding:12px 14px; width:100%;
+  font-family:'Poppins','Inter',sans-serif; box-sizing:border-box; color:#262626;
+}
 </style>
 </head>
 <body>
@@ -232,6 +257,44 @@ html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--tex
         <button class="btn-add-el" onclick="addElement('text')">+ Adicionar texto</button>
         <div style="height:4px"></div>
         <button class="btn-add-el" onclick="addElement('box')">+ Adicionar caixa</button>
+      </div>
+
+      <div>
+        <div class="sticker-section-label">
+          <span>📌</span> Stickers IG
+        </div>
+        <div class="sticker-grid">
+          <button class="btn-sticker" onclick="addSticker('pergunta')">
+            <span class="s-ico">❓</span>Caixinha de<br>Perguntas
+          </button>
+          <button class="btn-sticker" onclick="addSticker('enquete')">
+            <span class="s-ico">📊</span>Enquete
+          </button>
+          <button class="btn-sticker" onclick="addSticker('quiz')">
+            <span class="s-ico">🧠</span>Quiz
+          </button>
+          <button class="btn-sticker" onclick="addSticker('reacao')">
+            <span class="s-ico">😍</span>Reação
+          </button>
+          <button class="btn-sticker" onclick="addSticker('contagem')">
+            <span class="s-ico">⏱️</span>Contagem<br>Regressiva
+          </button>
+          <button class="btn-sticker" onclick="addSticker('local')">
+            <span class="s-ico">📍</span>Localização
+          </button>
+          <button class="btn-sticker" onclick="addSticker('hashtag')">
+            <span class="s-ico">#️⃣</span>Hashtag
+          </button>
+          <button class="btn-sticker" onclick="addSticker('mencao')">
+            <span class="s-ico">👤</span>@Menção
+          </button>
+          <button class="btn-sticker" onclick="addSticker('link')">
+            <span class="s-ico">🔗</span>Link
+          </button>
+          <button class="btn-sticker" onclick="addSticker('musica')">
+            <span class="s-ico">🎵</span>Música
+          </button>
+        </div>
       </div>
     </div>
 
@@ -330,6 +393,152 @@ html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--tex
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
 
+// ── STICKER DEFAULTS ──
+const STICKER_DEFAULTS = {
+  pergunta: { label:'Caixinha de Perguntas', w:280, h:100,
+    data:{ titulo:'Faça-me uma pergunta 🙋', placeholder:'Escreva aqui...' } },
+  enquete:  { label:'Enquete', w:280, h:120,
+    data:{ pergunta:'Você prefere...', opcao1:'SIM 👍', opcao2:'NÃO 👎' } },
+  quiz:     { label:'Quiz', w:280, h:170,
+    data:{ pergunta:'Qual é a capital do Brasil?', opA:'Brasília', opB:'São Paulo', opC:'Rio de Janeiro', opD:'Belo Horizonte' } },
+  reacao:   { label:'Reação de Emoji', w:260, h:100,
+    data:{ pergunta:'O que você achou?', emoji:'😍' } },
+  contagem: { label:'Contagem Regressiva', w:280, h:120,
+    data:{ titulo:'Começa em breve!', horas:'00', minutos:'00', segundos:'00' } },
+  local:    { label:'Localização', w:220, h:50,
+    data:{ local:'São Paulo, SP' } },
+  hashtag:  { label:'Hashtag', w:220, h:50,
+    data:{ hashtag:'carolzonato' } },
+  mencao:   { label:'Menção', w:220, h:50,
+    data:{ mencao:'carolzonato' } },
+  link:     { label:'Link', w:280, h:56,
+    data:{ texto:'Acesse o link na bio 🔗', url:'carolzonato.com.br' } },
+  musica:   { label:'Música', w:280, h:72,
+    data:{ artista:'Carol Zonato', titulo:'Desafio -5kg', progresso:'40' } },
+};
+
+function addSticker(type) {
+  const def = STICKER_DEFAULTS[type];
+  if (!def) return;
+  elCounter++;
+  const id = 'el_' + elCounter;
+  const frame = document.getElementById('storyFrame');
+  const fh = frame.offsetHeight;
+  const el = {
+    id, type: 'sticker', stickerType: type,
+    x: Math.round((360 - def.w) / 2),
+    y: Math.round(fh * 0.4),
+    w: def.w, h: def.h,
+    visible: true, zIndex: elCounter + 10,
+    stickerData: { ...def.data },
+    // unused by stickers but kept for compatibility
+    text: def.label, html: null,
+    fontSize:14, fontFamily:'Poppins', fontWeight:'600', fontStyle:'normal',
+    fontEffect:'', textTransform:'none', textAlign:'center',
+    color:'#262626', bgColor:'transparent', bgOpacity:0,
+    radius:16, padX:14, padY:12,
+  };
+  elements.push(el);
+  renderElement(el);
+  selectElement(el.id);
+  renderLayerList();
+  renderElList();
+}
+
+// ── STICKER HTML TEMPLATES ──
+function stickerTemplate(el) {
+  const d = el.stickerData;
+  const t = el.stickerType;
+
+  if (t === 'pergunta') return `
+    <div class="sk-card" style="border-radius:16px;">
+      <div style="font-size:9px;font-weight:700;color:#8e8e8e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;">${d.titulo}</div>
+      <div style="font-size:13px;color:#c0c0c0;border-bottom:1.5px solid #e8e8e8;padding-bottom:7px;min-height:20px;"></div>
+      <div style="display:flex;justify-content:flex-end;margin-top:5px;"><span style="font-size:16px;">❓</span></div>
+    </div>`;
+
+  if (t === 'enquete') return `
+    <div class="sk-card">
+      <div style="font-size:13px;font-weight:700;color:#262626;text-align:center;margin-bottom:10px;">${d.pergunta}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+        <div style="background:rgba(0,149,246,.12);border:1.5px solid #0095f6;border-radius:10px;padding:8px 4px;text-align:center;font-weight:700;color:#0095f6;font-size:12px;">${d.opcao1}</div>
+        <div style="background:rgba(255,55,95,.12);border:1.5px solid #ff375f;border-radius:10px;padding:8px 4px;text-align:center;font-weight:700;color:#ff375f;font-size:12px;">${d.opcao2}</div>
+      </div>
+    </div>`;
+
+  if (t === 'quiz') return `
+    <div class="sk-card">
+      <div style="font-size:9px;font-weight:800;color:#8e8e8e;text-transform:uppercase;text-align:center;letter-spacing:1px;margin-bottom:5px;">QUIZ 🧠</div>
+      <div style="font-size:12px;font-weight:700;color:#262626;text-align:center;margin-bottom:9px;line-height:1.3;">${d.pergunta}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
+        ${['A','B','C','D'].map(l=>`<div style="background:#f5f5f5;border-radius:8px;padding:6px 8px;font-size:11px;font-weight:600;color:#262626;display:flex;align-items:center;gap:4px;"><span style="color:#0095f6;font-weight:800;">${l}</span> ${d['op'+l]||'...'}</div>`).join('')}
+      </div>
+    </div>`;
+
+  if (t === 'reacao') return `
+    <div class="sk-card" style="text-align:center;">
+      <div style="font-size:11px;font-weight:600;color:#262626;margin-bottom:6px;">${d.pergunta}</div>
+      <div style="font-size:28px;line-height:1;">${d.emoji}</div>
+      <div style="position:relative;height:6px;background:#f0f0f0;border-radius:99px;margin:8px 0 2px;">
+        <div style="position:absolute;left:0;top:0;width:45%;height:100%;background:linear-gradient(90deg,#f09433,#e6683c,#dc2743,#cc2366);border-radius:99px;"></div>
+        <div style="position:absolute;left:42%;top:-11px;font-size:16px;">${d.emoji}</div>
+      </div>
+    </div>`;
+
+  if (t === 'contagem') return `
+    <div class="sk-card" style="text-align:center;">
+      <div style="font-size:11px;font-weight:700;color:#262626;margin-bottom:8px;">${d.titulo}</div>
+      <div style="display:flex;justify-content:center;gap:7px;">
+        ${['horas','minutos','segundos'].map((k,i)=>`
+          <div style="text-align:center;">
+            <div style="background:#262626;color:#fff;border-radius:8px;padding:5px 8px;font-size:20px;font-weight:800;min-width:36px;font-family:monospace;">${d[k]||'00'}</div>
+            <div style="font-size:7px;color:#8e8e8e;font-weight:700;text-transform:uppercase;margin-top:2px;">${['HRS','MIN','SEG'][i]}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+
+  if (t === 'local') return `
+    <div style="background:linear-gradient(135deg,#405de6,#5851db,#833ab4,#c13584,#e1306c,#fd1d1d);border-radius:99px;padding:9px 18px;display:flex;align-items:center;justify-content:center;gap:7px;width:100%;">
+      <span style="font-size:14px;">📍</span>
+      <span style="color:#fff;font-weight:700;font-size:13px;font-family:'Poppins',sans-serif;">${d.local}</span>
+    </div>`;
+
+  if (t === 'hashtag') return `
+    <div style="background:rgba(0,0,0,.62);border-radius:12px;padding:9px 18px;display:flex;align-items:center;justify-content:center;width:100%;">
+      <span style="color:#fff;font-weight:800;font-size:16px;font-family:'Poppins',sans-serif;">#${d.hashtag}</span>
+    </div>`;
+
+  if (t === 'mencao') return `
+    <div style="background:rgba(255,255,255,.88);border-radius:12px;padding:9px 18px;display:flex;align-items:center;justify-content:center;gap:5px;width:100%;">
+      <span style="font-size:14px;">👤</span>
+      <span style="color:#0095f6;font-weight:800;font-size:15px;font-family:'Poppins',sans-serif;">@${d.mencao}</span>
+    </div>`;
+
+  if (t === 'link') return `
+    <div class="sk-card" style="display:flex;align-items:center;gap:10px;padding:12px 14px;">
+      <span style="font-size:18px;">🔗</span>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#262626;">${d.texto}</div>
+        <div style="font-size:10px;color:#0095f6;font-weight:600;margin-top:1px;">${d.url}</div>
+      </div>
+    </div>`;
+
+  if (t === 'musica') return `
+    <div class="sk-card" style="display:flex;align-items:center;gap:10px;padding:10px 12px;">
+      <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#1db954,#191414);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">🎵</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:700;color:#262626;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.titulo}</div>
+        <div style="font-size:10px;color:#8e8e8e;margin-top:1px;">${d.artista}</div>
+        <div style="height:3px;background:#e0e0e0;border-radius:99px;margin-top:5px;position:relative;">
+          <div style="width:${d.progresso||40}%;height:100%;background:#1db954;border-radius:99px;"></div>
+        </div>
+      </div>
+      <span style="font-size:16px;color:#262626;">▶</span>
+    </div>`;
+
+  return `<div class="sk-card"><p style="color:#888;font-size:11px;">Sticker: ${t}</p></div>`;
+}
+
 // ── STATE ──
 let elements = [];
 let selectedId = null;
@@ -420,10 +629,22 @@ function renderElement(el) {
     attachDrag(dom, el);
     attachResize(document.getElementById(el.id + '_rh'), el);
     dom.addEventListener('click', e => { e.stopPropagation(); selectElement(el.id); });
-    dom.addEventListener('dblclick', e => { e.stopPropagation(); startInlineEdit(el); });
+    dom.addEventListener('dblclick', e => {
+      e.stopPropagation();
+      if (el.type === 'sticker') { selectElement(el.id); switchTab('props', document.querySelector('[data-tab="props"]')); }
+      else { startInlineEdit(el); }
+    });
   }
 
   dom.style.cssText = `left:${el.x}px;top:${el.y}px;width:${el.w}px;height:${el.h}px;z-index:${el.zIndex};display:${el.visible?'flex':'none'};border-radius:${el.radius}px;`;
+
+  // Sticker: use template HTML, skip normal text/font pipeline
+  if (el.type === 'sticker') {
+    const inner = document.getElementById(el.id + '_inner');
+    inner.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;overflow:hidden;border-radius:inherit;';
+    inner.innerHTML = `<div class="sk-wrap">${stickerTemplate(el)}</div>`;
+    return;
+  }
 
   const inner = document.getElementById(el.id + '_inner');
   const textEl = document.getElementById(el.id + '_text');
@@ -559,10 +780,78 @@ function handleCanvasClick(e) {
 function getEl(id) { return elements.find(e => e.id === id); }
 
 // ── PROPS PANEL ──
+function renderStickerProps(el) {
+  const panel = document.getElementById('propsPanel');
+  const d = el.stickerData;
+  const t = el.stickerType;
+  const def = STICKER_DEFAULTS[t] || {};
+
+  const field = (id, label, val, hint='') => `
+    <div class="prop-row col">
+      <label>${label}</label>
+      <input type="text" class="input-text" id="sk_${id}" value="${(val||'').replace(/"/g,'&quot;')}" placeholder="${hint}">
+    </div>`;
+
+  let fields = '';
+  if (t==='pergunta') fields = field('titulo','Título/instrução',d.titulo,'Faça-me uma pergunta 🙋');
+  if (t==='enquete') fields = field('pergunta','Pergunta',d.pergunta) + field('opcao1','Opção 1',d.opcao1,'SIM 👍') + field('opcao2','Opção 2',d.opcao2,'NÃO 👎');
+  if (t==='quiz') fields = field('pergunta','Pergunta',d.pergunta) + field('opA','Opção A',d.opA) + field('opB','Opção B',d.opB) + field('opC','Opção C',d.opC) + field('opD','Opção D',d.opD);
+  if (t==='reacao') fields = field('pergunta','Pergunta',d.pergunta) + field('emoji','Emoji',d.emoji,'😍');
+  if (t==='contagem') fields = field('titulo','Título',d.titulo) + field('horas','Horas (00)',d.horas,'00') + field('minutos','Minutos (00)',d.minutos,'00') + field('segundos','Segundos (00)',d.segundos,'00');
+  if (t==='local') fields = field('local','Local',d.local,'São Paulo, SP');
+  if (t==='hashtag') fields = field('hashtag','Hashtag (sem #)',d.hashtag,'carolzonato');
+  if (t==='mencao') fields = field('mencao','@Usuário (sem @)',d.mencao,'carolzonato');
+  if (t==='link') fields = field('texto','Texto do link',d.texto) + field('url','URL',d.url,'carolzonato.com.br');
+  if (t==='musica') fields = field('titulo','Título da música',d.titulo) + field('artista','Artista',d.artista) + field('progresso','Progresso (%)',d.progresso,'40');
+
+  panel.innerHTML = `
+    <div class="prop-section">
+      <div class="section-label">${def.label || t}</div>
+      ${fields}
+    </div>
+    <div class="divider"></div>
+    <div class="prop-section">
+      <div class="section-label">Posição e tamanho</div>
+      <div class="two-col">
+        <div><div class="section-label" style="margin-bottom:3px">X</div><input type="number" class="input-text" id="p_x" value="${Math.round(el.x)}"></div>
+        <div><div class="section-label" style="margin-bottom:3px">Y</div><input type="number" class="input-text" id="p_y" value="${Math.round(el.y)}"></div>
+        <div><div class="section-label" style="margin-bottom:3px">Largura</div><input type="number" class="input-text" id="p_w" value="${Math.round(el.w)}"></div>
+        <div><div class="section-label" style="margin-bottom:3px">Altura</div><input type="number" class="input-text" id="p_h" value="${Math.round(el.h)}"></div>
+      </div>
+      <div style="display:flex;gap:5px;margin-top:2px">
+        <button class="btn-add-el" style="flex:1;font-size:9px;padding:7px" onclick="snapEl('left')">⬅</button>
+        <button class="btn-add-el" style="flex:1;font-size:9px;padding:7px" onclick="snapEl('center')">↔</button>
+        <button class="btn-add-el" style="flex:1;font-size:9px;padding:7px" onclick="snapEl('right')">➡</button>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <button class="btn-add-el" style="color:#ff6666;border-color:#442222" onclick="deleteElement('${el.id}')">🗑 Deletar sticker</button>
+  `;
+
+  // Bind sticker data fields
+  Object.keys(d).forEach(key => {
+    const inp = document.getElementById('sk_' + key);
+    if (!inp) return;
+    inp.addEventListener('input', () => {
+      d[key] = inp.value;
+      renderElement(el);
+    });
+  });
+
+  // Pos/size bindings
+  function on(id, fn) { const el2=document.getElementById(id); if(el2){el2.addEventListener('input',fn);el2.addEventListener('change',fn);} }
+  on('p_x', e => { el.x=+e.target.value; const d2=document.getElementById(el.id); if(d2) d2.style.left=el.x+'px'; });
+  on('p_y', e => { el.y=+e.target.value; const d2=document.getElementById(el.id); if(d2) d2.style.top=el.y+'px'; });
+  on('p_w', e => { el.w=+e.target.value; const d2=document.getElementById(el.id); if(d2) d2.style.width=el.w+'px'; });
+  on('p_h', e => { el.h=+e.target.value; const d2=document.getElementById(el.id); if(d2) d2.style.height=el.h+'px'; });
+}
+
 function renderPropsPanel() {
   const panel = document.getElementById('propsPanel');
   const el = getEl(selectedId);
   if (!el) { panel.innerHTML = '<div class="prop-empty">Selecione um elemento no canvas para editar suas propriedades.<br><br>Duplo clique = editar texto inline com cores por seleção.</div>'; return; }
+
+  if (el.type === 'sticker') { renderStickerProps(el); return; }
 
   panel.innerHTML = `
     <div class="prop-section">
@@ -775,10 +1064,10 @@ function renderElList() {
   if(!elements.length) { list.innerHTML=''; return; }
   list.innerHTML = elements.map(el=>`
     <div class="el-item ${selectedId===el.id?'selected':''}" onclick="selectElement('${el.id}')">
-      <span class="el-item-icon">${el.type==='text'?'T':'▬'}</span>
+      <span class="el-item-icon">${el.type==='sticker'?({pergunta:'❓',enquete:'📊',quiz:'🧠',reacao:'😍',contagem:'⏱️',local:'📍',hashtag:'#️⃣',mencao:'👤',link:'🔗',musica:'🎵'}[el.stickerType]||'📌'):el.type==='text'?'T':'▬'}</span>
       <div class="el-item-info">
         <div class="el-item-name">${el.text.slice(0,24)}</div>
-        <div class="el-item-sub">${el.fontFamily} ${el.fontSize}px</div>
+        <div class="el-item-sub">${el.type==='sticker'?'Sticker IG':el.fontFamily+' '+el.fontSize+'px'}</div>
       </div>
       <span class="el-item-del" onclick="event.stopPropagation();deleteElement('${el.id}')">✕</span>
     </div>

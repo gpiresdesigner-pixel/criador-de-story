@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Admin — Desafio -5kg em 7 Dias</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { background: #F0F4F8; }
+
+    .depoimento-preview {
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--texto2);
+      font-style: italic;
+      font-size: 0.85rem;
+    }
+
+    .contagem-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 0.8rem;
+      padding: 3px 10px;
+      border-radius: 99px;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Autenticação via JS no carregamento -->
+
+<!-- Modal de depoimento completo -->
+<div class="modal-overlay" id="modal-overlay" onclick="fecharModalClick(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="modal-titulo">Depoimento Completo</h2>
+      <button class="modal-fechar" onclick="fecharModal()">✕</button>
+    </div>
+    <div class="modal-corpo" id="modal-corpo">
+      <!-- preenchido pelo JS -->
+    </div>
+  </div>
+</div>
+
+<!-- Header Admin -->
+<header class="admin-header">
+  <div class="admin-header-inner">
+    <div class="admin-logo">
+      <h1>📊 Painel de Depoimentos</h1>
+      <p>Desafio -5kg em 7 Dias — Carol Zonato</p>
+    </div>
+    <div class="admin-acoes">
+      <button class="btn-admin btn-admin-verde" onclick="exportarCSV()">
+        📥 Exportar CSV
+      </button>
+      <button class="btn-admin btn-admin-perigo" onclick="limparDados()">
+        🗑️ Limpar dados
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="admin-body">
+
+  <!-- Cards de resumo -->
+  <div class="cards-resumo">
+    <div class="card-resumo">
+      <span class="card-resumo-icone">📝</span>
+      <div class="card-resumo-valor" id="stat-total">0</div>
+      <div class="card-resumo-label">Depoimentos recebidos</div>
+    </div>
+    <div class="card-resumo">
+      <span class="card-resumo-icone">⚖️</span>
+      <div class="card-resumo-valor" id="stat-kg">—</div>
+      <div class="card-resumo-label">Média de kg perdidos</div>
+    </div>
+    <div class="card-resumo">
+      <span class="card-resumo-icone">📏</span>
+      <div class="card-resumo-valor" id="stat-cm">—</div>
+      <div class="card-resumo-label">Média de cm perdidos</div>
+    </div>
+    <div class="card-resumo">
+      <span class="card-resumo-icone">⭐</span>
+      <div class="card-resumo-valor" id="stat-estrelas">—</div>
+      <div class="card-resumo-label">Avaliação média</div>
+    </div>
+  </div>
+
+  <!-- Tabela -->
+  <div class="tabela-wrap">
+    <div class="tabela-titulo-bar">
+      <span>
+        Todos os depoimentos
+        <span class="contagem-badge" id="contagem-badge">0</span>
+      </span>
+      <a href="index.html" style="font-size:0.85rem;color:var(--verde);font-weight:700;text-decoration:none;">
+        + Ver formulário
+      </a>
+    </div>
+
+    <div class="tabela-container">
+      <table id="tabela-dep">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nome</th>
+            <th>Cidade</th>
+            <th>Kg perdidos</th>
+            <th>Cm perdidos</th>
+            <th>⭐</th>
+            <th>Data</th>
+            <th>Autorização</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tabela-body">
+          <!-- preenchido pelo JS -->
+        </tbody>
+      </table>
+
+      <div class="tabela-vazia" id="tabela-vazia" style="display:none;">
+        <span class="tabela-vazia-icone">📭</span>
+        <p><strong>Nenhum depoimento ainda.</strong></p>
+        <p style="margin-top:8px;font-size:0.9rem;">Compartilhe o link do formulário com as alunas!</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /admin-body -->
+
+<script>
+/* ===================================================
+   AUTENTICAÇÃO
+   =================================================== */
+(function verificarSenha() {
+  const SENHA_CORRETA = 'carol2024';
+  const tentativa = prompt('🔒 Digite a senha para acessar o painel:');
+
+  if (tentativa === null || tentativa.trim() !== SENHA_CORRETA) {
+    alert('Senha incorreta. Você será redirecionada.');
+    window.location.href = 'index.html';
+  }
+})();
+
+/* ===================================================
+   DADOS
+   =================================================== */
+function carregarDepoimentos() {
+  try {
+    return JSON.parse(localStorage.getItem('desafio_depoimentos') || '[]');
+  } catch {
+    return [];
+  }
+}
+
+/* ===================================================
+   RENDERIZAÇÃO DO PAINEL
+   =================================================== */
+function renderizarPainel() {
+  const lista = carregarDepoimentos();
+
+  // Stats
+  document.getElementById('stat-total').textContent = lista.length;
+  document.getElementById('contagem-badge').textContent = lista.length;
+
+  const comKg = lista.filter(d => d.kg_perdidos !== null && d.kg_perdidos !== undefined);
+  if (comKg.length > 0) {
+    const mediaKg = comKg.reduce((s, d) => s + d.kg_perdidos, 0) / comKg.length;
+    document.getElementById('stat-kg').textContent = mediaKg.toFixed(1).replace('.', ',') + ' kg';
+  }
+
+  const comCm = lista.filter(d => d.cm_perdidos_total !== undefined && d.cm_perdidos_total !== null);
+  if (comCm.length > 0) {
+    const mediaCm = comCm.reduce((s, d) => s + d.cm_perdidos_total, 0) / comCm.length;
+    document.getElementById('stat-cm').textContent = mediaCm.toFixed(1).replace('.', ',') + ' cm';
+  }
+
+  const comEst = lista.filter(d => d.avaliacao > 0);
+  if (comEst.length > 0) {
+    const mediaEst = comEst.reduce((s, d) => s + d.avaliacao, 0) / comEst.length;
+    document.getElementById('stat-estrelas').textContent = mediaEst.toFixed(1).replace('.', ',') + ' ⭐';
+  }
+
+  // Tabela
+  const tbody = document.getElementById('tabela-body');
+  const vazia = document.getElementById('tabela-vazia');
+  const tabelaEl = document.getElementById('tabela-dep');
+
+  if (lista.length === 0) {
+    tabelaEl.style.display = 'none';
+    vazia.style.display = 'block';
+    return;
+  }
+
+  tabelaEl.style.display = 'table';
+  vazia.style.display = 'none';
+
+  tbody.innerHTML = lista.map((d, i) => {
+    const data = new Date(d.timestamp).toLocaleDateString('pt-BR');
+    const kg   = d.kg_perdidos !== null && d.kg_perdidos !== undefined
+                   ? d.kg_perdidos.toFixed(1).replace('.', ',') + ' kg'
+                   : '—';
+    const cm   = d.cm_perdidos_total !== undefined && d.cm_perdidos_total !== null
+                   ? d.cm_perdidos_total.toFixed(1).replace('.', ',') + ' cm'
+                   : '—';
+    const est  = d.avaliacao ? '⭐'.repeat(d.avaliacao) : '—';
+    const aut  = d.autoriza_uso
+                   ? '<span class="badge badge-sim">✅ Sim</span>'
+                   : '<span class="badge badge-nao">❌ Não</span>';
+
+    return `
+      <tr>
+        <td style="color:var(--texto2);font-size:0.8rem;">${i + 1}</td>
+        <td><strong>${escaparHTML(d.nome || '—')}</strong></td>
+        <td>${escaparHTML(d.cidade || '—')}</td>
+        <td style="color:var(--verde);font-weight:700;">${kg}</td>
+        <td style="color:var(--verde);font-weight:700;">${cm}</td>
+        <td>${est}</td>
+        <td style="color:var(--texto2);">${data}</td>
+        <td>${aut}</td>
+        <td><button class="btn-ver" onclick="abrirModal(${i})">👁 Ver</button></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+/* ===================================================
+   MODAL
+   =================================================== */
+function abrirModal(index) {
+  const lista = carregarDepoimentos();
+  const d = lista[index];
+  if (!d) return;
+
+  document.getElementById('modal-titulo').textContent = '💚 ' + (d.nome || 'Depoimento');
+
+  const corpo = document.getElementById('modal-corpo');
+  let html = '';
+
+  // Foto de perfil
+  if (d.foto_perfil_base64) {
+    html += `
+      <div class="modal-perfil-wrap">
+        <img src="${d.foto_perfil_base64}" class="modal-perfil" alt="Foto de perfil">
+      </div>`;
+  }
+
+  // Fotos antes/depois
+  if (d.foto_antes_base64 || d.foto_depois_base64) {
+    html += `<div class="modal-fotos">`;
+    if (d.foto_antes_base64) {
+      html += `<div class="modal-foto">
+        <span class="modal-foto-label">📸 Antes</span>
+        <img src="${d.foto_antes_base64}" alt="Foto antes">
+      </div>`;
+    }
+    if (d.foto_depois_base64) {
+      html += `<div class="modal-foto">
+        <span class="modal-foto-label">✨ Depois</span>
+        <img src="${d.foto_depois_base64}" alt="Foto depois">
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  // Info pessoal
+  html += `
+    <div class="modal-secao">
+      <div class="modal-secao-titulo">👤 Informações pessoais</div>
+      <div class="modal-grid">
+        <div class="modal-item">
+          <div class="modal-item-label">Nome</div>
+          <div class="modal-item-valor">${escaparHTML(d.nome || '—')}</div>
+        </div>
+        <div class="modal-item">
+          <div class="modal-item-label">Cidade</div>
+          <div class="modal-item-valor">${escaparHTML(d.cidade || '—')}</div>
+        </div>
+        <div class="modal-item">
+          <div class="modal-item-label">Data de envio</div>
+          <div class="modal-item-valor">${new Date(d.timestamp).toLocaleString('pt-BR')}</div>
+        </div>
+        <div class="modal-item">
+          <div class="modal-item-label">Autorização de uso</div>
+          <div class="modal-item-valor">${d.autoriza_uso ? '✅ Autorizado' : '❌ Não autorizado'}</div>
+        </div>
+      </div>
+    </div>`;
+
+  // Peso
+  if (d.peso_antes || d.peso_depois) {
+    html += `
+      <div class="modal-secao">
+        <div class="modal-secao-titulo">⚖️ Resultado de peso</div>
+        <div class="modal-grid">
+          <div class="modal-item">
+            <div class="modal-item-label">Peso antes</div>
+            <div class="modal-item-valor">${d.peso_antes ? d.peso_antes.toFixed(1).replace('.',',') + ' kg' : '—'}</div>
+          </div>
+          <div class="modal-item">
+            <div class="modal-item-label">Peso depois</div>
+            <div class="modal-item-valor">${d.peso_depois ? d.peso_depois.toFixed(1).replace('.',',') + ' kg' : '—'}</div>
+          </div>
+          <div class="modal-item" style="grid-column:1/-1;background:var(--verde-claro);">
+            <div class="modal-item-label">Total perdido</div>
+            <div class="modal-item-valor" style="color:var(--verde-escuro);font-size:1.3rem;">
+              ${d.kg_perdidos !== null && d.kg_perdidos !== undefined ? d.kg_perdidos.toFixed(1).replace('.',',') + ' kg 🎉' : '—'}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // Medidas
+  const MEDIDAS_LABELS = {
+    cintura: 'Cintura', quadril: 'Quadril', abdomen: 'Abdômen',
+    busto: 'Busto', braco_d: 'Braço D.', coxa_d: 'Coxa D.'
+  };
+
+  const temMedidas = d.medidas_antes && Object.values(d.medidas_antes).some(v => v !== null);
+  if (temMedidas) {
+    html += `
+      <div class="modal-secao">
+        <div class="modal-secao-titulo">📏 Medidas (cm)</div>
+        <div class="modal-grid">`;
+
+    Object.keys(MEDIDAS_LABELS).forEach(key => {
+      const antes  = d.medidas_antes?.[key];
+      const depois = d.medidas_depois?.[key];
+      if (antes !== null && antes !== undefined) {
+        const diff = (antes !== null && depois !== null) ? (antes - depois).toFixed(1) : '—';
+        html += `
+          <div class="modal-item">
+            <div class="modal-item-label">${MEDIDAS_LABELS[key]}</div>
+            <div class="modal-item-valor">${antes ?? '—'} → ${depois ?? '—'} <span style="color:var(--verde);font-size:0.8rem;">(−${diff} cm)</span></div>
+          </div>`;
+      }
+    });
+
+    html += `
+          <div class="modal-item" style="grid-column:1/-1;background:var(--verde-claro);">
+            <div class="modal-item-label">Total cm perdidos</div>
+            <div class="modal-item-valor" style="color:var(--verde-escuro);font-size:1.3rem;">
+              ${d.cm_perdidos_total !== null && d.cm_perdidos_total !== undefined ? d.cm_perdidos_total.toFixed(1).replace('.',',') + ' cm 💪' : '—'}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // Avaliação
+  html += `
+    <div class="modal-secao">
+      <div class="modal-secao-titulo">⭐ Avaliação</div>
+      <div class="modal-estrelas">${'⭐'.repeat(d.avaliacao || 0)}${'☆'.repeat(5 - (d.avaliacao || 0))}</div>
+    </div>`;
+
+  // Depoimento
+  html += `
+    <div class="modal-secao">
+      <div class="modal-secao-titulo">💬 Depoimento</div>
+      <div class="modal-depoimento">"${escaparHTML(d.depoimento_texto || '—')}"</div>
+    </div>`;
+
+  corpo.innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('aberto');
+  document.body.style.overflow = 'hidden';
+}
+
+function fecharModal() {
+  document.getElementById('modal-overlay').classList.remove('aberto');
+  document.body.style.overflow = '';
+}
+
+function fecharModalClick(e) {
+  if (e.target === document.getElementById('modal-overlay')) fecharModal();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') fecharModal();
+});
+
+/* ===================================================
+   EXPORTAR CSV
+   =================================================== */
+function exportarCSV() {
+  const lista = carregarDepoimentos();
+
+  if (lista.length === 0) {
+    alert('Nenhum depoimento para exportar ainda.');
+    return;
+  }
+
+  const cabecalho = [
+    'ID', 'Data', 'Nome', 'Cidade',
+    'Peso Antes (kg)', 'Peso Depois (kg)', 'Kg Perdidos',
+    'Cintura Antes', 'Cintura Depois',
+    'Quadril Antes',  'Quadril Depois',
+    'Abdômen Antes',  'Abdômen Depois',
+    'Busto Antes',    'Busto Depois',
+    'Braço D. Antes', 'Braço D. Depois',
+    'Coxa D. Antes',  'Coxa D. Depois',
+    'Cm Perdidos Total',
+    'Avaliação (estrelas)',
+    'Autoriza Uso',
+    'Depoimento'
+  ];
+
+  const linhas = lista.map(d => [
+    d.id,
+    new Date(d.timestamp).toLocaleString('pt-BR'),
+    d.nome || '',
+    d.cidade || '',
+    d.peso_antes ?? '',
+    d.peso_depois ?? '',
+    d.kg_perdidos ?? '',
+    d.medidas_antes?.cintura ?? '',  d.medidas_depois?.cintura ?? '',
+    d.medidas_antes?.quadril ?? '',  d.medidas_depois?.quadril ?? '',
+    d.medidas_antes?.abdomen ?? '',  d.medidas_depois?.abdomen ?? '',
+    d.medidas_antes?.busto ?? '',    d.medidas_depois?.busto ?? '',
+    d.medidas_antes?.braco_d ?? '',  d.medidas_depois?.braco_d ?? '',
+    d.medidas_antes?.coxa_d ?? '',   d.medidas_depois?.coxa_d ?? '',
+    d.cm_perdidos_total ?? '',
+    d.avaliacao || '',
+    d.autoriza_uso ? 'Sim' : 'Não',
+    (d.depoimento_texto || '').replace(/"/g, '""'),
+  ].map(v => `"${v}"`).join(','));
+
+  const csv    = '﻿' + [cabecalho.map(c => `"${c}"`).join(','), ...linhas].join('\n');
+  const blob   = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url    = URL.createObjectURL(blob);
+  const link   = document.createElement('a');
+  const data   = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+
+  link.href     = url;
+  link.download = `depoimentos-desafio-${data}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ===================================================
+   LIMPAR DADOS
+   =================================================== */
+function limparDados() {
+  const lista = carregarDepoimentos();
+  if (lista.length === 0) {
+    alert('Não há dados para limpar.');
+    return;
+  }
+
+  const conf1 = confirm(`⚠️ Você tem certeza que quer apagar TODOS os ${lista.length} depoimentos?\n\nEsta ação não pode ser desfeita!`);
+  if (!conf1) return;
+
+  const conf2 = confirm('🚨 ÚLTIMA CHANCE!\n\nTodos os depoimentos serão perdidos permanentemente.\n\nConfirma a exclusão?');
+  if (!conf2) return;
+
+  localStorage.removeItem('desafio_depoimentos');
+  renderizarPainel();
+  alert('✅ Todos os depoimentos foram removidos.');
+}
+
+/* ===================================================
+   UTILITÁRIOS
+   =================================================== */
+function escaparHTML(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/* ===================================================
+   INIT
+   =================================================== */
+renderizarPainel();
+</script>
+</body>
+</html>

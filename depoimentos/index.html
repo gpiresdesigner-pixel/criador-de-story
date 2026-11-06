@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Seu Resultado Importa! — Desafio -5kg em 7 Dias</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Estilos exclusivos desta página que não precisam ir para o CSS compartilhado */
+    .nav-voltar {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: none;
+      border: none;
+      color: var(--verde);
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 8px 0;
+      margin-bottom: 8px;
+    }
+    .nav-voltar:hover { text-decoration: underline; }
+
+    .campo-peso-par {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .sufixo-campo {
+      position: relative;
+    }
+    .sufixo-campo .sufixo {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      color: var(--texto2);
+      pointer-events: none;
+      font-size: 1rem;
+    }
+    .sufixo-campo .input-campo { padding-right: 46px; }
+
+    .etapa-numero {
+      display: inline-block;
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 0.78rem;
+      padding: 4px 10px;
+      border-radius: 99px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Canvas para confete (sempre presente, fora do .pagina) -->
+<canvas id="confete-canvas"></canvas>
+
+<!-- Header -->
+<header class="header">
+  <h1>Seu Resultado Importa! 💚</h1>
+  <p>Conta pra gente como foi sua transformação no desafio</p>
+</header>
+
+<div class="pagina">
+
+  <!-- Barra de progresso -->
+  <div class="progress-wrap" id="progress-wrap">
+    <div class="progress-info">
+      <span id="passo-texto">Passo 1 de 4</span>
+      <span id="passo-pct">25%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill" style="width:25%"></div>
+    </div>
+  </div>
+
+  <!-- =============================================
+       ETAPA 1 — Identificação
+       ============================================= -->
+  <div class="etapa ativa" id="etapa-1">
+    <div class="etapa-card">
+      <span class="etapa-numero">Etapa 1 de 4</span>
+      <h2 class="etapa-titulo">Quem é você? 👋</h2>
+      <p class="etapa-subtitulo">Vamos começar com algumas informações básicas sobre você.</p>
+
+      <!-- Nome -->
+      <div class="campo-grupo">
+        <label class="campo-label" for="nome">Seu nome completo <span class="obrigatorio">*</span></label>
+        <input type="text"
+               id="nome"
+               class="input-campo"
+               placeholder="Ex: Maria da Silva"
+               autocomplete="name"
+               inputmode="text">
+        <div class="msg-erro" id="erro-nome">⚠️ Por favor, informe seu nome completo.</div>
+      </div>
+
+      <!-- Cidade -->
+      <div class="campo-grupo">
+        <label class="campo-label" for="cidade">Cidade e estado</label>
+        <input type="text"
+               id="cidade"
+               class="input-campo"
+               placeholder="Ex: São Paulo – SP"
+               autocomplete="address-level2"
+               inputmode="text">
+      </div>
+
+      <!-- Foto de perfil -->
+      <div class="campo-grupo">
+        <label class="campo-label">Sua foto de perfil (opcional)</label>
+        <div class="upload-area" onclick="document.getElementById('foto-perfil').click()">
+          <span class="upload-icon">🤳</span>
+          <p class="upload-texto">Toque aqui para escolher sua foto</p>
+          <p class="upload-subtexto">JPG ou PNG • Tamanho máximo: 5 MB</p>
+          <input type="file" id="foto-perfil" accept="image/*">
+        </div>
+        <img id="preview-perfil" class="preview-circular" alt="Prévia da foto de perfil">
+      </div>
+
+      <button class="btn-primario" onclick="irParaEtapa(2)">
+        Próximo <span>→</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- =============================================
+       ETAPA 2 — Peso
+       ============================================= -->
+  <div class="etapa" id="etapa-2">
+    <div class="etapa-card">
+      <button class="nav-voltar" onclick="irParaEtapa(1)">← Voltar</button>
+      <span class="etapa-numero">Etapa 2 de 4</span>
+      <h2 class="etapa-titulo">Seu peso ⚖️</h2>
+      <p class="etapa-subtitulo">Informe seu peso antes e depois do desafio. Não precisa ser exato, vai pelo que você mediu!</p>
+
+      <!-- Peso antes/depois -->
+      <div class="campo-grupo">
+        <label class="campo-label">Seu peso ANTES e DEPOIS do desafio <span class="obrigatorio">*</span></label>
+        <div class="campo-peso-par">
+          <div>
+            <p style="font-size:0.85rem;color:var(--texto2);font-weight:700;margin-bottom:6px;">📅 Antes</p>
+            <div class="sufixo-campo">
+              <input type="number"
+                     id="peso-antes"
+                     class="input-campo"
+                     placeholder="78,5"
+                     step="0.1"
+                     min="30"
+                     max="300"
+                     inputmode="decimal"
+                     oninput="calcularKg()">
+              <span class="sufixo">kg</span>
+            </div>
+          </div>
+          <div>
+            <p style="font-size:0.85rem;color:var(--texto2);font-weight:700;margin-bottom:6px;">✅ Depois</p>
+            <div class="sufixo-campo">
+              <input type="number"
+                     id="peso-depois"
+                     class="input-campo"
+                     placeholder="74,2"
+                     step="0.1"
+                     min="30"
+                     max="300"
+                     inputmode="decimal"
+                     oninput="calcularKg()">
+              <span class="sufixo">kg</span>
+            </div>
+          </div>
+        </div>
+        <div class="msg-erro" id="erro-peso">⚠️ Por favor, preencha os dois pesos corretamente.</div>
+        <div class="msg-aviso" id="aviso-peso-maior">⚠️ O peso depois parece maior que o anterior. Confira os valores!</div>
+      </div>
+
+      <!-- Resultado kg -->
+      <div class="resultado-destaque" id="resultado-kg">
+        <div class="resultado-numero" id="kg-perdidos-texto">-</div>
+        <div class="resultado-texto" id="kg-perdidos-label">kg perdidos 🎉</div>
+      </div>
+
+      <!-- Fotos antes/depois -->
+      <div class="campo-grupo">
+        <label class="campo-label">Fotos antes e depois (opcional)</label>
+        <div class="fotos-row">
+          <div>
+            <span class="foto-slot-label">📸 Antes</span>
+            <div class="upload-area" onclick="document.getElementById('foto-antes').click()" style="padding:16px 12px;">
+              <span class="upload-icon" style="font-size:1.8rem;">📷</span>
+              <p class="upload-texto" style="font-size:0.85rem;">Escolher foto</p>
+              <input type="file" id="foto-antes" accept="image/*">
+            </div>
+            <img id="preview-antes" class="preview-retangular" alt="Foto antes">
+          </div>
+          <div>
+            <span class="foto-slot-label">✨ Depois</span>
+            <div class="upload-area" onclick="document.getElementById('foto-depois').click()" style="padding:16px 12px;">
+              <span class="upload-icon" style="font-size:1.8rem;">📷</span>
+              <p class="upload-texto" style="font-size:0.85rem;">Escolher foto</p>
+              <input type="file" id="foto-depois" accept="image/*">
+            </div>
+            <img id="preview-depois" class="preview-retangular" alt="Foto depois">
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-primario" onclick="irParaEtapa(3)">
+        Próximo <span>→</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- =============================================
+       ETAPA 3 — Medidas
+       ============================================= -->
+  <div class="etapa" id="etapa-3">
+    <div class="etapa-card">
+      <button class="nav-voltar" onclick="irParaEtapa(2)">← Voltar</button>
+      <span class="etapa-numero">Etapa 3 de 4</span>
+      <h2 class="etapa-titulo">Suas medidas 📏</h2>
+      <p class="etapa-subtitulo">Preencha o que você mediu. Pode deixar em branco o que não mediu — tudo bem!</p>
+
+      <!-- Cabeçalho da tabela -->
+      <div class="medidas-header">
+        <span></span>
+        <span>Antes (cm)</span>
+        <span>Depois (cm)</span>
+      </div>
+
+      <!-- Linhas de medidas -->
+      <div id="linhas-medidas">
+        <!-- geradas pelo JS -->
+      </div>
+
+      <!-- Resultado total cm -->
+      <div class="resultado-destaque" id="resultado-cm">
+        <div class="resultado-numero" id="cm-perdidos-texto">-</div>
+        <div class="resultado-texto">cm perdidos no total 💪</div>
+      </div>
+
+      <button class="btn-primario" onclick="irParaEtapa(4)">
+        Próximo <span>→</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- =============================================
+       ETAPA 4 — Depoimento
+       ============================================= -->
+  <div class="etapa" id="etapa-4">
+    <div class="etapa-card">
+      <button class="nav-voltar" onclick="irParaEtapa(3)">← Voltar</button>
+      <span class="etapa-numero">Etapa 4 de 4</span>
+      <h2 class="etapa-titulo">Seu depoimento 💬</h2>
+      <p class="etapa-subtitulo">Conta tudo! Sua história pode inspirar outras mulheres a dar o primeiro passo.</p>
+
+      <!-- Texto do depoimento -->
+      <div class="campo-grupo">
+        <label class="campo-label" for="depoimento-texto">Como foi sua experiência? O que mudou na sua vida? <span class="obrigatorio">*</span></label>
+        <textarea id="depoimento-texto"
+                  class="input-campo"
+                  placeholder="Ex: Eu estava sem esperança, mas em 7 dias consegui..."
+                  oninput="contarChars(this)"></textarea>
+        <div class="contador-chars" id="contador-chars">Mínimo 50 caracteres</div>
+        <div class="msg-erro" id="erro-depoimento">⚠️ Conta mais! Escreva pelo menos 50 caracteres.</div>
+      </div>
+
+      <!-- Avaliação com estrelas -->
+      <div class="campo-grupo">
+        <label class="campo-label">Como você avalia o desafio? <span class="obrigatorio">*</span></label>
+        <div class="estrelas-wrap" id="estrelas-wrap">
+          <span class="estrela" data-val="1" onclick="selecionarEstrela(1)" onmouseover="hoverEstrela(1)" onmouseout="unhoverEstrela()">⭐</span>
+          <span class="estrela" data-val="2" onclick="selecionarEstrela(2)" onmouseover="hoverEstrela(2)" onmouseout="unhoverEstrela()">⭐</span>
+          <span class="estrela" data-val="3" onclick="selecionarEstrela(3)" onmouseover="hoverEstrela(3)" onmouseout="unhoverEstrela()">⭐</span>
+          <span class="estrela" data-val="4" onclick="selecionarEstrela(4)" onmouseover="hoverEstrela(4)" onmouseout="unhoverEstrela()">⭐</span>
+          <span class="estrela" data-val="5" onclick="selecionarEstrela(5)" onmouseover="hoverEstrela(5)" onmouseout="unhoverEstrela()">⭐</span>
+        </div>
+        <div class="msg-erro" id="erro-estrelas">⚠️ Por favor, selecione uma avaliação de 1 a 5 estrelas.</div>
+      </div>
+
+      <!-- Autorização -->
+      <div class="campo-grupo">
+        <label class="checkbox-grupo">
+          <input type="checkbox" id="autoriza-uso">
+          <span class="checkbox-texto">✅ Autorizo o uso do meu depoimento nas redes sociais da Carol Zonato</span>
+        </label>
+        <div class="msg-erro" id="erro-autorizacao">⚠️ Você precisa marcar a autorização para continuar.</div>
+      </div>
+
+      <!-- Botão de envio -->
+      <button class="btn-primario" id="btn-enviar" onclick="enviarDepoimento()">
+        <span id="btn-enviar-texto">Enviar meu depoimento! 🚀</span>
+        <div class="spinner" id="spinner-envio"></div>
+      </button>
+    </div>
+  </div>
+
+  <!-- =============================================
+       TELA DE SUCESSO
+       ============================================= -->
+  <div class="tela-sucesso" id="tela-sucesso">
+    <span class="sucesso-emoji">🎉</span>
+    <h2 class="sucesso-titulo">Arrasou!</h2>
+    <p class="sucesso-texto">
+      Seu depoimento foi enviado com sucesso! 💚<br><br>
+      A Carol vai adorar ver sua transformação incrível!
+    </p>
+  </div>
+
+</div><!-- /pagina -->
+
+<script>
+/* ===================================================
+   CONFIGURAÇÃO DAS MEDIDAS
+   =================================================== */
+const MEDIDAS = [
+  { id: 'cintura',   label: 'Cintura',      icone: '📏' },
+  { id: 'quadril',   label: 'Quadril',      icone: '📏' },
+  { id: 'abdomen',   label: 'Abdômen',      icone: '📏' },
+  { id: 'busto',     label: 'Busto',        icone: '📏' },
+  { id: 'braco_d',   label: 'Braço D.',     icone: '📏' },
+  { id: 'coxa_d',    label: 'Coxa D.',      icone: '📏' },
+];
+
+/* ===================================================
+   ESTADO DA APLICAÇÃO
+   =================================================== */
+let etapaAtual = 1;
+let avaliacaoSelecionada = 0;
+let fotoPerfil_b64 = null;
+let fotoAntes_b64  = null;
+let fotoDepois_b64 = null;
+
+/* ===================================================
+   INIT
+   =================================================== */
+document.addEventListener('DOMContentLoaded', () => {
+  gerarLinhasMedidas();
+  bindFotoInput('foto-perfil', 'preview-perfil', 'circular', (b64) => fotoPerfil_b64 = b64);
+  bindFotoInput('foto-antes',  'preview-antes',  'retangular', (b64) => fotoAntes_b64 = b64);
+  bindFotoInput('foto-depois', 'preview-depois', 'retangular', (b64) => fotoDepois_b64 = b64);
+});
+
+/* ===================================================
+   GERAÇÃO DAS LINHAS DE MEDIDAS
+   =================================================== */
+function gerarLinhasMedidas() {
+  const container = document.getElementById('linhas-medidas');
+  container.innerHTML = MEDIDAS.map(m => `
+    <div class="medida-linha">
+      <div class="medida-icone-wrap">
+        <span class="medida-icone">${m.icone}</span>
+        <span class="medida-nome">${m.label}</span>
+      </div>
+      <input type="number"
+             id="m-antes-${m.id}"
+             class="medida-input"
+             placeholder="—"
+             min="0"
+             max="200"
+             step="0.1"
+             inputmode="decimal"
+             oninput="calcularCm()">
+      <input type="number"
+             id="m-depois-${m.id}"
+             class="medida-input"
+             placeholder="—"
+             min="0"
+             max="200"
+             step="0.1"
+             inputmode="decimal"
+             oninput="calcularCm()">
+    </div>
+  `).join('');
+}
+
+/* ===================================================
+   NAVEGAÇÃO ENTRE ETAPAS
+   =================================================== */
+function irParaEtapa(numero) {
+  if (numero > etapaAtual && !validarEtapaAtual()) return;
+
+  // Esconde etapa atual
+  document.getElementById('etapa-' + etapaAtual).classList.remove('ativa');
+  etapaAtual = numero;
+
+  const alvo = document.getElementById('etapa-' + numero);
+  if (alvo) {
+    alvo.classList.add('ativa');
+    atualizarProgresso();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (navigator.vibrate) navigator.vibrate(30);
+  }
+}
+
+function atualizarProgresso() {
+  const pct = Math.round((etapaAtual / 4) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('passo-texto').textContent = 'Passo ' + etapaAtual + ' de 4';
+  document.getElementById('passo-pct').textContent = pct + '%';
+}
+
+/* ===================================================
+   VALIDAÇÃO POR ETAPA
+   =================================================== */
+function validarEtapaAtual() {
+  if (etapaAtual === 1) return validarEtapa1();
+  if (etapaAtual === 2) return validarEtapa2();
+  if (etapaAtual === 3) return true; // medidas são opcionais
+  return true;
+}
+
+function validarEtapa1() {
+  const nome = document.getElementById('nome').value.trim();
+  const erroEl = document.getElementById('erro-nome');
+  const inputEl = document.getElementById('nome');
+
+  if (!nome) {
+    mostrarErro(inputEl, erroEl);
+    return false;
+  }
+  esconderErro(inputEl, erroEl);
+  return true;
+}
+
+function validarEtapa2() {
+  const antes  = parseFloat(document.getElementById('peso-antes').value);
+  const depois = parseFloat(document.getElementById('peso-depois').value);
+  const erroEl = document.getElementById('erro-peso');
+  const inputAntes  = document.getElementById('peso-antes');
+  const inputDepois = document.getElementById('peso-depois');
+
+  if (!antes || !depois || antes <= 0 || depois <= 0) {
+    mostrarErro(inputAntes, erroEl);
+    mostrarErro(inputDepois, erroEl);
+    return false;
+  }
+  esconderErro(inputAntes, erroEl);
+  esconderErro(inputDepois, erroEl);
+  return true;
+}
+
+function mostrarErro(inputEl, msgEl) {
+  inputEl && inputEl.classList.add('erro-campo');
+  msgEl   && msgEl.classList.add('visivel');
+}
+
+function esconderErro(inputEl, msgEl) {
+  inputEl && inputEl.classList.remove('erro-campo');
+  msgEl   && msgEl.classList.remove('visivel');
+}
+
+/* ===================================================
+   CÁLCULO DE KG PERDIDOS
+   =================================================== */
+function calcularKg() {
+  const antes  = parseFloat(document.getElementById('peso-antes').value);
+  const depois = parseFloat(document.getElementById('peso-depois').value);
+  const resultEl = document.getElementById('resultado-kg');
+  const avisoEl  = document.getElementById('aviso-peso-maior');
+
+  if (antes > 0 && depois > 0) {
+    const diff = antes - depois;
+    document.getElementById('kg-perdidos-texto').textContent =
+      (diff > 0 ? '+' : '') + diff.toFixed(1).replace('.', ',');
+    document.getElementById('kg-perdidos-label').textContent =
+      diff >= 0 ? 'kg perdidos 🎉' : 'kg (parece que você ganhou — confira!)';
+    resultEl.classList.add('visivel');
+
+    if (depois > antes) {
+      avisoEl.classList.add('visivel');
+    } else {
+      avisoEl.classList.remove('visivel');
+    }
+  } else {
+    resultEl.classList.remove('visivel');
+  }
+}
+
+/* ===================================================
+   CÁLCULO DE CM PERDIDOS
+   =================================================== */
+function calcularCm() {
+  let total = 0;
+  let temAlgum = false;
+
+  MEDIDAS.forEach(m => {
+    const antes  = parseFloat(document.getElementById('m-antes-' + m.id).value);
+    const depois = parseFloat(document.getElementById('m-depois-' + m.id).value);
+    if (!isNaN(antes) && !isNaN(depois)) {
+      temAlgum = true;
+      total += (antes - depois);
+    }
+  });
+
+  const resultEl = document.getElementById('resultado-cm');
+  if (temAlgum) {
+    document.getElementById('cm-perdidos-texto').textContent =
+      (total > 0 ? '+' : '') + total.toFixed(1).replace('.', ',');
+    resultEl.classList.add('visivel');
+  } else {
+    resultEl.classList.remove('visivel');
+  }
+}
+
+/* ===================================================
+   UPLOAD E PREVIEW DE FOTOS
+   =================================================== */
+function bindFotoInput(inputId, previewId, tipo, callback) {
+  const input   = document.getElementById(inputId);
+  const preview = document.getElementById(previewId);
+
+  input.addEventListener('change', () => {
+    const file = input.files[0];
+    if (!file) return;
+
+    // Limite de 5 MB
+    if (file.size > 5 * 1024 * 1024) {
+      alert('A imagem é muito grande! Use uma foto de até 5 MB.');
+      input.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      const b64 = e.target.result;
+      preview.src = b64;
+      preview.style.display = 'block';
+      callback(b64);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ===================================================
+   ESTRELAS
+   =================================================== */
+function selecionarEstrela(val) {
+  avaliacaoSelecionada = val;
+  atualizarEstrelasVisuais(val, false);
+}
+
+function hoverEstrela(val) {
+  atualizarEstrelasVisuais(val, true);
+}
+
+function unhoverEstrela() {
+  atualizarEstrelasVisuais(avaliacaoSelecionada, false);
+}
+
+function atualizarEstrelasVisuais(val, isHover) {
+  document.querySelectorAll('.estrela').forEach(el => {
+    const n = parseInt(el.dataset.val);
+    el.classList.toggle('ativa',       !isHover && n <= val);
+    el.classList.toggle('hover-ativa',  isHover && n <= val);
+  });
+}
+
+/* ===================================================
+   CONTADOR DE CHARS
+   =================================================== */
+function contarChars(el) {
+  const len = el.value.trim().length;
+  const contador = document.getElementById('contador-chars');
+  if (len < 50) {
+    contador.textContent = `Faltam ${50 - len} caracteres`;
+    contador.classList.remove('ok');
+  } else {
+    contador.textContent = `✔ ${len} caracteres — ótimo!`;
+    contador.classList.add('ok');
+  }
+}
+
+/* ===================================================
+   ENVIO DO FORMULÁRIO
+   =================================================== */
+function enviarDepoimento() {
+  // Validação etapa 4
+  let valido = true;
+
+  const textoEl  = document.getElementById('depoimento-texto');
+  const texto    = textoEl.value.trim();
+  const erroTxt  = document.getElementById('erro-depoimento');
+
+  if (texto.length < 50) {
+    mostrarErro(textoEl, erroTxt);
+    valido = false;
+  } else {
+    esconderErro(textoEl, erroTxt);
+  }
+
+  const erroEst = document.getElementById('erro-estrelas');
+  if (avaliacaoSelecionada === 0) {
+    erroEst.classList.add('visivel');
+    valido = false;
+  } else {
+    erroEst.classList.remove('visivel');
+  }
+
+  const autoriza  = document.getElementById('autoriza-uso').checked;
+  const erroAut   = document.getElementById('erro-autorizacao');
+  if (!autoriza) {
+    erroAut.classList.add('visivel');
+    valido = false;
+  } else {
+    erroAut.classList.remove('visivel');
+  }
+
+  if (!valido) return;
+
+  // Spinner
+  const btn = document.getElementById('btn-enviar');
+  btn.disabled = true;
+  document.getElementById('btn-enviar-texto').textContent = 'Enviando...';
+  document.getElementById('spinner-envio').classList.add('visivel');
+
+  // Coleta dados
+  const pesoBefore = parseFloat(document.getElementById('peso-antes').value) || null;
+  const pesoAfter  = parseFloat(document.getElementById('peso-depois').value) || null;
+
+  const medidasAntes  = {};
+  const medidasDepois = {};
+  let cmTotal = 0;
+
+  MEDIDAS.forEach(m => {
+    const a = parseFloat(document.getElementById('m-antes-'  + m.id).value) || null;
+    const d = parseFloat(document.getElementById('m-depois-' + m.id).value) || null;
+    medidasAntes[m.id]  = a;
+    medidasDepois[m.id] = d;
+    if (a !== null && d !== null) cmTotal += (a - d);
+  });
+
+  const depoimento = {
+    id:               Date.now(),
+    timestamp:        new Date().toISOString(),
+    nome:             document.getElementById('nome').value.trim(),
+    cidade:           document.getElementById('cidade').value.trim(),
+    peso_antes:       pesoBefore,
+    peso_depois:      pesoAfter,
+    kg_perdidos:      (pesoBefore && pesoAfter) ? +(pesoBefore - pesoAfter).toFixed(2) : null,
+    medidas_antes:    medidasAntes,
+    medidas_depois:   medidasDepois,
+    cm_perdidos_total: +cmTotal.toFixed(1),
+    depoimento_texto:  texto,
+    avaliacao:         avaliacaoSelecionada,
+    autoriza_uso:      true,
+    foto_perfil_base64: fotoPerfil_b64,
+    foto_antes_base64:  fotoAntes_b64,
+    foto_depois_base64: fotoDepois_b64,
+  };
+
+  // Salva no localStorage
+  try {
+    const lista = JSON.parse(localStorage.getItem('desafio_depoimentos') || '[]');
+    lista.push(depoimento);
+    localStorage.setItem('desafio_depoimentos', JSON.stringify(lista));
+  } catch (e) {
+    // localStorage cheio (imagens grandes) — salva sem as imagens
+    const semFotos = { ...depoimento, foto_perfil_base64: null, foto_antes_base64: null, foto_depois_base64: null };
+    const lista = JSON.parse(localStorage.getItem('desafio_depoimentos') || '[]');
+    lista.push(semFotos);
+    localStorage.setItem('desafio_depoimentos', JSON.stringify(lista));
+  }
+
+  // Simula pequeno delay para feedback visual
+  setTimeout(() => {
+    mostrarSucesso();
+  }, 900);
+}
+
+/* ===================================================
+   TELA DE SUCESSO + CONFETE
+   =================================================== */
+function mostrarSucesso() {
+  // Oculta formulário
+  document.getElementById('etapa-4').classList.remove('ativa');
+  document.getElementById('progress-wrap').style.display = 'none';
+
+  // Mostra tela de sucesso
+  document.getElementById('tela-sucesso').classList.add('ativa');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (navigator.vibrate) navigator.vibrate([50, 50, 100]);
+
+  // Dispara confete
+  lancarConfete();
+}
+
+/* ===================================================
+   CONFETE — canvas animation sem libs externas
+   =================================================== */
+function lancarConfete() {
+  const canvas = document.getElementById('confete-canvas');
+  const ctx    = canvas.getContext('2d');
+
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const cores = ['#27AE60','#E74C3C','#F39C12','#3498DB','#9B59B6','#1ABC9C','#E67E22','#ECF0F1'];
+
+  const particulas = Array.from({ length: 120 }, () => ({
+    x:   Math.random() * canvas.width,
+    y:   Math.random() * canvas.height - canvas.height,
+    w:   Math.random() * 10 + 5,
+    h:   Math.random() * 6  + 3,
+    cor: cores[Math.floor(Math.random() * cores.length)],
+    vy:  Math.random() * 3 + 2,
+    vx:  (Math.random() - 0.5) * 2,
+    rot: Math.random() * 360,
+    vr:  (Math.random() - 0.5) * 8,
+    opacidade: 1,
+  }));
+
+  let frame = 0;
+
+  function animar() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    frame++;
+
+    particulas.forEach(p => {
+      p.y   += p.vy;
+      p.x   += p.vx;
+      p.rot += p.vr;
+      if (frame > 120) p.opacidade = Math.max(0, p.opacidade - 0.012);
+
+      ctx.save();
+      ctx.translate(p.x + p.w / 2, p.y + p.h / 2);
+      ctx.rotate(p.rot * Math.PI / 180);
+      ctx.globalAlpha = p.opacidade;
+      ctx.fillStyle = p.cor;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    });
+
+    const ainda_visiveis = particulas.some(p => p.opacidade > 0);
+    if (ainda_visiveis && frame < 280) {
+      requestAnimationFrame(animar);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  animar();
+}
+</script>
+</body>
+</html>
